@@ -11,8 +11,8 @@ const initialCases = [
 const reviewers = [{name:'王大明',role:'數學教育專長',initial:'王',color:'avatar-indigo',online:true,tags:['數學','課程設計'],cases:3},{name:'陳美玲',role:'語文教育專長',initial:'陳',color:'avatar-amber',online:true,tags:['國語文','閱讀素養'],cases:2},{name:'張志豪',role:'社會領域專長',initial:'張',color:'avatar-indigo',online:false,tags:['公民','多元文化'],cases:2},{name:'林雅雯',role:'教育科技專長',initial:'林',color:'avatar-amber',online:true,tags:['數位學習','無障礙'],cases:1},{name:'李承翰',role:'自然科學專長',initial:'李',color:'avatar-indigo',online:false,tags:['自然科學','探究實作'],cases:2},{name:'許婉如',role:'兒童教育專長',initial:'許',color:'avatar-amber',online:true,tags:['幼兒教育','適齡性'],cases:1}];
 let cases = JSON.parse(localStorage.getItem('review-cases') || 'null') || initialCases;
 let firebaseReady = false;
-$('#google-login')?.addEventListener('click',async()=>{try{await signInWithGoogle();location.reload()}catch(error){console.error(error);toast('Google 登入未完成')}});
 const $ = s => document.querySelector(s); const $$ = s => [...document.querySelectorAll(s)];
+$('#google-login')?.addEventListener('click',async()=>{try{await signInWithGoogle();location.reload()}catch(error){console.error(error);toast('Google 登入未完成')}});
 function statusClass(status){return status==='已完成'?'done':status==='待補件'?'pending':'review'}
 function renderCases(){
   const search=($('#case-search')?.value||'').toLowerCase(); const filter=$('#status-filter')?.value||'all';
@@ -35,6 +35,7 @@ renderCases();renderReviewers();
 async function initializeData(){
   if(!isFirebaseConfigured){toast('尚未設定 Firebase Web App，現在使用本機暫存');return;}
   try{
+    if(!(await getCurrentUser())) return;
     const remoteCases=await loadCases();
     if(remoteCases){cases=remoteCases;localStorage.setItem('review-cases',JSON.stringify(cases));renderCases();firebaseReady=true;toast('已連線 Firebase Firestore');}
   }catch(error){console.error(error);toast('Firebase 尚未啟用或規則拒絕存取，暫以離線模式運作');}
