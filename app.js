@@ -1,4 +1,4 @@
-import { createCase, isFirebaseConfigured, loadCases } from './firebase-data.js';
+import { createCase, getCurrentUser, isFirebaseConfigured, loadCases, signInWithGoogle } from './firebase-data.js';
 
 const initialCases = [
   {id:'EDU-2024-006',name:'國中數學第三冊',org:'翰林出版事業',type:'教科書',reviewer:'王大明',due:'2024-05-28',status:'審查中',updated:'2 小時前'},
@@ -11,6 +11,7 @@ const initialCases = [
 const reviewers = [{name:'王大明',role:'數學教育專長',initial:'王',color:'avatar-indigo',online:true,tags:['數學','課程設計'],cases:3},{name:'陳美玲',role:'語文教育專長',initial:'陳',color:'avatar-amber',online:true,tags:['國語文','閱讀素養'],cases:2},{name:'張志豪',role:'社會領域專長',initial:'張',color:'avatar-indigo',online:false,tags:['公民','多元文化'],cases:2},{name:'林雅雯',role:'教育科技專長',initial:'林',color:'avatar-amber',online:true,tags:['數位學習','無障礙'],cases:1},{name:'李承翰',role:'自然科學專長',initial:'李',color:'avatar-indigo',online:false,tags:['自然科學','探究實作'],cases:2},{name:'許婉如',role:'兒童教育專長',initial:'許',color:'avatar-amber',online:true,tags:['幼兒教育','適齡性'],cases:1}];
 let cases = JSON.parse(localStorage.getItem('review-cases') || 'null') || initialCases;
 let firebaseReady = false;
+$('#google-login')?.addEventListener('click',async()=>{try{await signInWithGoogle();location.reload()}catch(error){console.error(error);toast('Google 登入未完成')}});
 const $ = s => document.querySelector(s); const $$ = s => [...document.querySelectorAll(s)];
 function statusClass(status){return status==='已完成'?'done':status==='待補件'?'pending':'review'}
 function renderCases(){
@@ -39,6 +40,7 @@ async function initializeData(){
   }catch(error){console.error(error);toast('Firebase 尚未啟用或規則拒絕存取，暫以離線模式運作');}
 }
 initializeData();
+getCurrentUser().then(user=>{if(user&&$('#google-login'))$('#google-login').textContent='已登入 Google'}).catch(()=>{});
 
 function setupAiReview(){
   const heading=$('#cases-view .page-heading');
