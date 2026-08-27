@@ -1,3 +1,5 @@
+import { createCase, isFirebaseConfigured, loadCases } from './firebase-data.js';
+
 const initialCases = [
   {id:'EDU-2024-006',name:'國中數學第三冊',org:'翰林出版事業',type:'教科書',reviewer:'王大明',due:'2024-05-28',status:'審查中',updated:'2 小時前'},
   {id:'EDU-2024-005',name:'國小自然科學互動教材',org:'康軒文教事業',type:'數位教材',reviewer:'陳美玲',due:'2024-05-29',status:'審查中',updated:'昨天'},
@@ -8,6 +10,7 @@ const initialCases = [
 ];
 const reviewers = [{name:'王大明',role:'數學教育專長',initial:'王',color:'avatar-indigo',online:true,tags:['數學','課程設計'],cases:3},{name:'陳美玲',role:'語文教育專長',initial:'陳',color:'avatar-amber',online:true,tags:['國語文','閱讀素養'],cases:2},{name:'張志豪',role:'社會領域專長',initial:'張',color:'avatar-indigo',online:false,tags:['公民','多元文化'],cases:2},{name:'林雅雯',role:'教育科技專長',initial:'林',color:'avatar-amber',online:true,tags:['數位學習','無障礙'],cases:1},{name:'李承翰',role:'自然科學專長',initial:'李',color:'avatar-indigo',online:false,tags:['自然科學','探究實作'],cases:2},{name:'許婉如',role:'兒童教育專長',initial:'許',color:'avatar-amber',online:true,tags:['幼兒教育','適齡性'],cases:1}];
 let cases = JSON.parse(localStorage.getItem('review-cases') || 'null') || initialCases;
+let firebaseReady = false;
 const $ = s => document.querySelector(s); const $$ = s => [...document.querySelectorAll(s)];
 function statusClass(status){return status==='已完成'?'done':status==='待補件'?'pending':'review'}
 function renderCases(){
@@ -24,9 +27,18 @@ function showView(view){$$('.page').forEach(p=>p.classList.add('hidden'));$(`#${
 function openModal(){ $('#case-modal').classList.remove('hidden'); const date=new Date();date.setDate(date.getDate()+14);$('#case-form [name=due]').value=date.toISOString().slice(0,10); }
 function closeModal(){ $('#case-modal').classList.add('hidden'); }
 $$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>showView(btn.dataset.view))); $$('[data-view-link]').forEach(btn=>btn.addEventListener('click',()=>showView(btn.dataset.viewLink))); $('#mobile-menu').addEventListener('click',()=>$('#sidebar').classList.toggle('open')); $('#new-case-btn').addEventListener('click',openModal); $('#new-case-btn-2').addEventListener('click',openModal); $$('[data-close-modal]').forEach(b=>b.addEventListener('click',closeModal)); $('#case-modal').addEventListener('click',e=>{if(e.target.id==='case-modal')closeModal()}); $('#case-search').addEventListener('input',renderCases); $('#status-filter').addEventListener('change',renderCases);
-$('#case-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.target);const n={id:`EDU-2024-${String(cases.length+1).padStart(3,'0')}`,name:f.get('name'),org:f.get('org'),type:f.get('type'),reviewer:f.get('reviewer'),due:f.get('due'),status:'審查中',updated:'剛剛'};cases.unshift(n);localStorage.setItem('review-cases',JSON.stringify(cases));renderCases();closeModal();e.target.reset();toast('案件已建立，已加入審查清單');showView('cases')});
+$('#case-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);const n={name:f.get('name'),org:f.get('org'),type:f.get('type'),reviewer:f.get('reviewer'),due:f.get('due'),status:'審查中',updated:'剛剛'};try{const saved=firebaseReady?await createCase(n):null;cases.unshift(saved||{id:`EDU-2024-${String(cases.length+1).padStart(3,'0')}`,...n});localStorage.setItem('review-cases',JSON.stringify(cases));renderCases();closeModal();e.target.reset();toast(firebaseReady?'案件已建立並同步至 Firebase':'案件已建立（目前為離線模式）');showView('cases')}catch(error){console.error(error);toast('Firebase 儲存失敗，請檢查 Firestore 設定')}});
 document.addEventListener('click',e=>{const c=e.target.closest('[data-case]');if(c)toast(`案件 ${c.dataset.case}：已開啟操作選單`);const t=e.target.closest('[data-toast]');if(t)toast(t.dataset.toast)}); $('#invite-btn')?.addEventListener('click',()=>toast('邀請委員功能已準備，請填寫委員 Email')); $('#template-btn')?.addEventListener('click',()=>toast('表單建立功能已準備')); $('#export-report')?.addEventListener('click',()=>toast('報表已準備下載（示範模式）')); $$('.secondary-btn').forEach(b=>b.addEventListener('click',()=>{if(b.textContent.includes('匯出'))toast('案件清單已準備下載（示範模式）')}));
 renderCases();renderReviewers();
+
+async function initializeData(){
+  if(!isFirebaseConfigured){toast('尚未設定 Firebase Web App，現在使用本機暫存');return;}
+  try{
+    const remoteCases=await loadCases();
+    if(remoteCases){cases=remoteCases;localStorage.setItem('review-cases',JSON.stringify(cases));renderCases();firebaseReady=true;toast('已連線 Firebase Firestore');}
+  }catch(error){console.error(error);toast('Firebase 尚未啟用或規則拒絕存取，暫以離線模式運作');}
+}
+initializeData();
 
 function setupAiReview(){
   const heading=$('#cases-view .page-heading');

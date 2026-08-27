@@ -20,6 +20,24 @@ python -m http.server 8080
 
 再開啟 <http://localhost:8080>。
 
+## Firebase 後台資料庫
+
+專案已包含 Firestore 接點與規則：
+
+- `cases`：教材審查案件（名稱、送審單位、類型、委員、期限、狀態）
+- `reviewers`：審查委員
+- `templates`：審查表單範本
+- `settings`：工作區設定
+
+設定方式：
+
+1. 在 Firebase Console 的「Firestore Database」建立資料庫。
+2. 在「Authentication > Sign-in method」啟用「匿名」登入（目前前端以匿名工作階段連線；正式版建議改成 Google／Email 登入與角色權限）。
+3. 在「專案設定 > 你的應用程式」建立 Web App，將 SDK config 填入 `firebase-config.js`。
+4. 部署規則：`firebase deploy --only firestore:rules`。
+
+目前案件頁會優先讀寫 Firestore；若尚未填入 Web App config，會自動退回 `localStorage`，方便本機預覽。
+
 ## 後續接正式系統
 
 目前是前端 MVP，正式版可將 `app.js` 中的案件資料替換為 API，並加入登入、檔案儲存、資料庫、電子簽核、審查意見與報告產生服務。

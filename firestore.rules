@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // MVP：僅允許已登入的管理者使用後台資料。
+    // 正式上線前請在 users/{uid} 建立 role 欄位，並將此條件收緊為管理者角色。
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /cases/{caseId} {
+      allow read, create, update: if signedIn();
+      allow delete: if signedIn();
+    }
+
+    match /reviewers/{reviewerId} {
+      allow read, write: if signedIn();
+    }
+
+    match /templates/{templateId} {
+      allow read, write: if signedIn();
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if signedIn();
+    }
+  }
+}
